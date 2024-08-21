@@ -35,7 +35,7 @@ Name: ca-certificates
 # to have increasing version numbers. However, the new scheme will work, 
 # because all future versions will start with 2013 or larger.)
 
-Version: 2023.2.60_v7.0.306
+Version: 2024.2.69_v8.0.303
 # On RHEL 8.x, please keep the release version >= 80
 # When rebasing on Y-Stream (8.y), use 81, 82, 83, ...
 # When rebasing on Z-Stream (8.y.z), use 80.0, 80.1, 80.2, ..
@@ -389,6 +389,54 @@ fi
 
 
 %changelog
+*Thu Jul 11 2024 Frantisek Krenzelok <fkrenzel@redhat.com> - 2024.2.69_v8.0.303-80.0
+- Update to CKBI 2.69_v8.0.303 from NSS 3.101.1
+-    Removing:
+-     # Certificate "Verisign Class 1 Public Primary Certification Authority - G3"
+-     # Certificate "Verisign Class 2 Public Primary Certification Authority - G3"
+-     # Certificate "Security Communication Root CA"
+-     # Certificate "Camerfirma Chambers of Commerce Root"
+-     # Certificate "Hongkong Post Root CA 1"
+-     # Certificate "Autoridad de Certificacion Firmaprofesional CIF A62634068"
+-     # Certificate "Symantec Class 1 Public Primary Certification Authority - G6"
+-     # Certificate "Symantec Class 2 Public Primary Certification Authority - G6"
+-     # Certificate "TrustCor RootCert CA-1"
+-     # Certificate "TrustCor RootCert CA-2"
+-     # Certificate "TrustCor ECA-1"
+-     # Certificate "FNMT-RCM"
+-    Adding:
+-     # Certificate "LAWtrust Root CA2 (4096)"
+-     # Certificate "Sectigo Public Email Protection Root E46"
+-     # Certificate "Sectigo Public Email Protection Root R46"
+-     # Certificate "Sectigo Public Server Authentication Root E46"
+-     # Certificate "Sectigo Public Server Authentication Root R46"
+-     # Certificate "SSL.com TLS RSA Root CA 2022"
+-     # Certificate "SSL.com TLS ECC Root CA 2022"
+-     # Certificate "SSL.com Client ECC Root CA 2022"
+-     # Certificate "SSL.com Client RSA Root CA 2022"
+-     # Certificate "Atos TrustedRoot Root CA ECC G2 2020"
+-     # Certificate "Atos TrustedRoot Root CA RSA G2 2020"
+-     # Certificate "Atos TrustedRoot Root CA ECC TLS 2021"
+-     # Certificate "Atos TrustedRoot Root CA RSA TLS 2021"
+-     # Certificate "TrustAsia Global Root CA G3"
+-     # Certificate "TrustAsia Global Root CA G4"
+-     # Certificate "CommScope Public Trust ECC Root-01"
+-     # Certificate "CommScope Public Trust ECC Root-02"
+-     # Certificate "CommScope Public Trust RSA Root-01"
+-     # Certificate "CommScope Public Trust RSA Root-02"
+-     # Certificate "D-Trust SBR Root CA 1 2022"
+-     # Certificate "D-Trust SBR Root CA 2 2022"
+-     # Certificate "Telekom Security SMIME ECC Root 2021"
+-     # Certificate "Telekom Security TLS ECC Root 2020"
+-     # Certificate "Telekom Security SMIME RSA Root 2023"
+-     # Certificate "Telekom Security TLS RSA Root 2023"
+-     # Certificate "FIRMAPROFESIONAL CA ROOT-A WEB"
+-     # Certificate "SECOM Trust.net"
+-     # Certificate "Chambers of Commerce Root"
+-     # Certificate "VeriSign Class 2 Public Primary Certification Authority - G3"
+-     # Certificate "SSL.com Code Signing RSA Root CA 2022"
+-     # Certificate "SSL.com Code Signing ECC Root CA 2022"
+
 *Tue Aug 01 2023 Robert Relyea <rrelyea@redhat.com> - 2023.2.60_v7.0.306-80.0
 - Update to CKBI 2.60_v7.0.306 from NSS 3.91
 -    Removing:
