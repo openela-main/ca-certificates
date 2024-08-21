@@ -35,11 +35,11 @@ Name: ca-certificates
 # to have increasing version numbers. However, the new scheme will work, 
 # because all future versions will start with 2013 or larger.)
 
-Version: 2023.2.60_v7.0.306
+Version: 2024.2.69_v8.0.303
 # for y-stream, please always use 91 <= release  < 100 (91,92,93)
 # for z-stream release branches, please use 90 <= release  < 91 (90.0, 90.1, ...)
-Release: 90.1%{?dist}
-License: Public Domain
+Release: 91.4%{?dist}
+License: MIT AND GPL-2.0-or-later
 
 URL: https://fedoraproject.org/wiki/CA-Certificates
 
@@ -71,16 +71,14 @@ Requires(post): coreutils
 Requires: bash
 Requires: grep
 Requires: sed
-Requires(post): p11-kit >= 0.24
 Requires(post): p11-kit-trust >= 0.24
-Requires: p11-kit >= 0.24
 Requires: p11-kit-trust >= 0.24
 
 BuildRequires: perl-interpreter
 BuildRequires: python3
 BuildRequires: openssl
 BuildRequires: asciidoc
-BuildRequires: libxslt
+BuildRequires: xmlto
 
 %description
 This package contains the set of CA certificates chosen by the
@@ -169,12 +167,12 @@ popd
 
 #manpage
 cp %{SOURCE10} %{name}/update-ca-trust.8.txt
-asciidoc.py -v -d manpage -b docbook %{name}/update-ca-trust.8.txt
-xsltproc --nonet -o %{name}/update-ca-trust.8 /usr/share/asciidoc/docbook-xsl/manpage.xsl %{name}/update-ca-trust.8.xml
+asciidoc -v -d manpage -b docbook %{name}/update-ca-trust.8.txt
+xmlto -v -o %{name} man %{name}/update-ca-trust.8.xml
 
 cp %{SOURCE9} %{name}/ca-legacy.8.txt
-asciidoc.py -v -d manpage -b docbook %{name}/ca-legacy.8.txt
-xsltproc --nonet -o %{name}/ca-legacy.8 /usr/share/asciidoc/docbook-xsl/manpage.xsl %{name}/ca-legacy.8.xml
+asciidoc -v -d manpage -b docbook %{name}/ca-legacy.8.txt
+xmlto -v -o %{name} man %{name}/ca-legacy.8.xml
 
 
 %install
@@ -187,6 +185,7 @@ mkdir -p -m 755 $RPM_BUILD_ROOT%{catrustdir}/source/anchors
 mkdir -p -m 755 $RPM_BUILD_ROOT%{catrustdir}/source/blocklist
 mkdir -p -m 755 $RPM_BUILD_ROOT%{catrustdir}/extracted
 mkdir -p -m 755 $RPM_BUILD_ROOT%{catrustdir}/extracted/pem
+mkdir -p -m 555 $RPM_BUILD_ROOT%{catrustdir}/extracted/pem/directory-hash
 mkdir -p -m 755 $RPM_BUILD_ROOT%{catrustdir}/extracted/openssl
 mkdir -p -m 755 $RPM_BUILD_ROOT%{catrustdir}/extracted/java
 mkdir -p -m 755 $RPM_BUILD_ROOT%{catrustdir}/extracted/edk2
@@ -260,6 +259,49 @@ ln -s %{catrustdir}/extracted/openssl/%{openssl_format_trust_bundle} \
 ln -s %{catrustdir}/extracted/%{java_bundle} \
     $RPM_BUILD_ROOT%{pkidir}/%{java_bundle}
 
+# Populate %%{catrustdir}/extracted/pem/directory-hash.
+#
+# First direct p11-kit-trust.so to the generated bundle (not the one
+# already present on the build system) with an overriding module
+# config. Note that we have to use a different config path based on
+# the current user: if root, ~/.config/pkcs11/modules/* are not read,
+# while if a regular user, she can't write to /etc.
+if test "$(id -u)" -eq 0; then
+   trust_module_dir=/etc/pkcs11/modules
+else
+   trust_module_dir=$HOME/.config/pkcs11/modules
+fi
+
+mkdir -p "$trust_module_dir"
+
+# It is unlikely that the directory would contain any files on a build system,
+# but let's make sure just in case.
+if [ -n "$(ls -A "$trust_module_dir")" ]; then
+        echo "Directory $trust_module_dir is not empty. Aborting build!"
+        exit 1
+fi
+
+trust_module_config=$trust_module_dir/%{name}-p11-kit-trust.module
+cat >"$trust_module_config" <<EOF
+module: p11-kit-trust.so
+trust-policy: yes
+x-init-reserved: paths='$RPM_BUILD_ROOT%{_datadir}/pki/ca-trust-source'
+EOF
+
+trust extract --format=pem-directory-hash --filter=ca-anchors --overwrite \
+      --purpose server-auth \
+      $RPM_BUILD_ROOT%{catrustdir}/extracted/pem/directory-hash
+
+# Create a temporary file with the list of (%ghost )files in the directory-hash.
+find $RPM_BUILD_ROOT%{catrustdir}/extracted/pem/directory-hash -type f,l > .files.txt
+sed -i "s|^$RPM_BUILD_ROOT|%ghost /|" .files.txt
+# Clean up the temporary module config.
+rm -f "$trust_module_config"
+
+
+%clean
+/usr/bin/chmod u+w $RPM_BUILD_ROOT%{catrustdir}/extracted/pem/directory-hash
+rm -rf $RPM_BUILD_ROOT
 
 %pre
 if [ $1 -gt 1 ] ; then
@@ -333,7 +375,8 @@ fi
 %{_bindir}/ca-legacy install
 %{_bindir}/update-ca-trust
 
-%files
+# The file .files.txt contains the list of (%ghost )files in the directory-hash
+%files -f .files.txt
 %dir %{_sysconfdir}/ssl
 %dir %{pkidir}/tls
 %dir %{pkidir}/tls/certs
@@ -351,6 +394,7 @@ fi
 %dir %{_datadir}/pki/ca-trust-source/anchors
 %dir %{_datadir}/pki/ca-trust-source/blocklist
 %dir %{_datadir}/pki/ca-trust-legacy
+%dir %{catrustdir}/extracted/pem/directory-hash
 
 %config(noreplace) %{catrustdir}/ca-legacy.conf
 
@@ -392,9 +436,91 @@ fi
 %ghost %{catrustdir}/extracted/openssl/%{openssl_format_trust_bundle}
 %ghost %{catrustdir}/extracted/%{java_bundle}
 %ghost %{catrustdir}/extracted/edk2/cacerts.bin
-
+%ghost %{catrustdir}/extracted/pem/directory-hash/ca-bundle.crt
+%ghost %{catrustdir}/extracted/pem/directory-hash/ca-certificates.crt
 
 %changelog
+*Fri Aug 16 2024 Frantisek Krenzelok <fkrenzel@redhat.com> - 2024.2.69_v8.0.303-91.4
+- update-ca-trust: return warnings on a unsupported argument instead of error
+
+*Wed Aug 7 2024 Frantisek Krenzelok <fkrenzel@redhat.com> - 2024.2.69_v8.0.303-91.3
+- Temporarily generate the directory-hash files in %%install ...(next item)
+- Add list of ghost files from directory-hash to %%files
+
+*Mon Jul 29 2024 Frantisek Krenzelok <fkrenzel@redhat.com> - 2024.2.69_v8.0.303-91.2
+- Remove write permissions from directory-hash
+
+*Mon Jul 29 2024 Frantisek Krenzelok <fkrenzel@redhat.com> - 2024.2.69_v8.0.303-91.1
+- Reduce dependency on p11-kit to only the trust subpackage
+- Own the Directory-hash directory
+
+*Mon Jul 15 2024 Frantisek Krenzelok <fkrenzel@redhat.com> - 2024.2.69_v8.0.303-91.0
+- Fix release number
+
+*Thu Jul 11 2024 Frantisek Krenzelok <fkrenzel@redhat.com> - 2024.2.69_v8.0.303-91
+- Update to CKBI 2.69_v8.0.303 from NSS 3.101.1
+-    GLOBALTRUST 2020 root CA certificate set CKA_NSS_{SERVER|EMAIL}_DISTRUST_AFTER
+
+*Tue Jun 25 2024 Frantisek Krenzelok <fkrenzel@redhat.com> - 2024.2.68_v8.0.302-91
+- Update to CKBI 2.68_v8.0.302 from NSS 3.101
+-    Removing:
+-     # Certificate "Verisign Class 1 Public Primary Certification Authority - G3"
+-     # Certificate "Verisign Class 2 Public Primary Certification Authority - G3"
+-     # Certificate "Security Communication Root CA"
+-     # Certificate "Camerfirma Chambers of Commerce Root"
+-     # Certificate "Hongkong Post Root CA 1"
+-     # Certificate "Autoridad de Certificacion Firmaprofesional CIF A62634068"
+-     # Certificate "Symantec Class 1 Public Primary Certification Authority - G6"
+-     # Certificate "Symantec Class 2 Public Primary Certification Authority - G6"
+-     # Certificate "TrustCor RootCert CA-1"
+-     # Certificate "TrustCor RootCert CA-2"
+-     # Certificate "TrustCor ECA-1"
+-     # Certificate "FNMT-RCM"
+-    Adding:
+-     # Certificate "LAWtrust Root CA2 (4096)"
+-     # Certificate "Sectigo Public Email Protection Root E46"
+-     # Certificate "Sectigo Public Email Protection Root R46"
+-     # Certificate "Sectigo Public Server Authentication Root E46"
+-     # Certificate "Sectigo Public Server Authentication Root R46"
+-     # Certificate "SSL.com TLS RSA Root CA 2022"
+-     # Certificate "SSL.com TLS ECC Root CA 2022"
+-     # Certificate "SSL.com Client ECC Root CA 2022"
+-     # Certificate "SSL.com Client RSA Root CA 2022"
+-     # Certificate "Atos TrustedRoot Root CA ECC G2 2020"
+-     # Certificate "Atos TrustedRoot Root CA RSA G2 2020"
+-     # Certificate "Atos TrustedRoot Root CA ECC TLS 2021"
+-     # Certificate "Atos TrustedRoot Root CA RSA TLS 2021"
+-     # Certificate "TrustAsia Global Root CA G3"
+-     # Certificate "TrustAsia Global Root CA G4"
+-     # Certificate "CommScope Public Trust ECC Root-01"
+-     # Certificate "CommScope Public Trust ECC Root-02"
+-     # Certificate "CommScope Public Trust RSA Root-01"
+-     # Certificate "CommScope Public Trust RSA Root-02"
+-     # Certificate "D-Trust SBR Root CA 1 2022"
+-     # Certificate "D-Trust SBR Root CA 2 2022"
+-     # Certificate "Telekom Security SMIME ECC Root 2021"
+-     # Certificate "Telekom Security TLS ECC Root 2020"
+-     # Certificate "Telekom Security SMIME RSA Root 2023"
+-     # Certificate "Telekom Security TLS RSA Root 2023"
+-     # Certificate "FIRMAPROFESIONAL CA ROOT-A WEB"
+-     # Certificate "SECOM Trust.net"
+-     # Certificate "Chambers of Commerce Root"
+-     # Certificate "VeriSign Class 2 Public Primary Certification Authority - G3"
+-     # Certificate "SSL.com Code Signing RSA Root CA 2022"
+-     # Certificate "SSL.com Code Signing ECC Root CA 2022"
+
+* Mon Oct 09 2023 Robert Relyea <rrelyea@redhat.com> 2024.2.68_v8.0.302-91.0
+- update-ca-trust: Fix bug in update-ca-trust so we don't depened on util-unix
+
+* Sat Oct 07 2023 Adam Williamson <awilliam@redhat.com> - 2024.2.68_v8.0.302-91.0
+- Skip %post if getopt is missing (recent change made update-ca-trust use it)
+
+* Fri Sep 29 2023 Clemens Lang <cllang@redhat.com> - 2024.2.68_v8.0.302-91.0
+- update-ca-trust: Support --output and non-root operation (rhbz#2241240)
+
+*Thu Sep 07 2023 Robert Relyea <rrelyea@redhat.com> - 2024.2.68_v8.0.302-91.0
+- update License: field to SPDX
+
 *Tue Aug 29 2023 Robert Relyea <rrelyea@redhat.com> - 2023.2.60_v7.0.306-90.1
 - Bump release number to make CI happy
 
