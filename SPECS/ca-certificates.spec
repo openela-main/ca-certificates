@@ -35,12 +35,12 @@ Name: ca-certificates
 # to have increasing version numbers. However, the new scheme will work, 
 # because all future versions will start with 2013 or larger.)
 
-Version: 2024.2.69_v8.0.303
+Version: 2025.2.80_v9.0.304
 # On RHEL 8.x, please keep the release version >= 80
 # When rebasing on Y-Stream (8.y), use 81, 82, 83, ...
 # When rebasing on Z-Stream (8.y.z), use 80.0, 80.1, 80.2, ..
-Release: 80.0%{?dist}
-License: Public Domain
+Release: 80.2%{?dist}
+License: MIT AND GPL-2.0-or-later
 
 Group: System Environment/Base
 URL: https://fedoraproject.org/wiki/CA-Certificates
@@ -389,6 +389,31 @@ fi
 
 
 %changelog
+*Thu Oct 23 2025 Frantisek Krenzelok <fkrenzel@redhat.com> - 2025.2.80_v9.0.304-80.2
+- Release bump to fix version overtaking
+
+*Thu Aug 28 2025 rhel-developer-toolbox <krenzelok.frantisek@gmail.com> - 2025.2.80_v9.0.304-80.0
+- Update to CKBI 2.80_v9.0.304 from NSS 3.114
+-    Adding:
+-     # Certificate "TWCA CYBER Root CA"
+-     # Certificate "TWCA Global Root CA G2"
+-     # Certificate "SecureSign Root CA12"
+-     # Certificate "SecureSign Root CA14"
+-     # Certificate "SecureSign Root CA15"
+-     # Certificate "D-TRUST BR Root CA 2 2023"
+-     # Certificate "TrustAsia SMIME ECC Root CA"
+-     # Certificate "TrustAsia SMIME RSA Root CA"
+-     # Certificate "TrustAsia TLS ECC Root CA"
+-     # Certificate "TrustAsia TLS RSA Root CA"
+-     # Certificate "D-TRUST EV Root CA 2 2023"
+-     # Certificate "SwissSign RSA SMIME Root CA 2022 - 1"
+-     # Certificate "SwissSign RSA TLS Root CA 2022 - 1"
+-     # Certificate "Sectigo Public Code Signing Root R46"
+-     # Certificate "Sectigo Public Code Signing Root E46"
+
+*Thu Aug 14 2025 Frantisek Krenzelok <fkrenzel@redhat.com> - 2024.2.69_v8.0.303-80.1
+- update License: field to SPDX
+
 *Thu Jul 11 2024 Frantisek Krenzelok <fkrenzel@redhat.com> - 2024.2.69_v8.0.303-80.0
 - Update to CKBI 2.69_v8.0.303 from NSS 3.101.1
 -    Removing:
