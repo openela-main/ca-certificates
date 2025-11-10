@@ -184,8 +184,8 @@ Distrust information cannot be represented in this file format,
 and distrusted certificates are missing from these files.
 File cacerts contains CA certificates trusted for TLS server authentication.
 
-The directory /etc/pki/ca-trust/extracted/openssl/ contains 
-CA certificate bundle files in the extended BEGIN/END TRUSTED CERTIFICATE file format, 
+The directory /etc/pki/ca-trust/extracted/openssl/ contains
+CA certificate bundle files in the extended BEGIN/END TRUSTED CERTIFICATE file format,
 as described in the x509(1) manual page.
 File ca-bundle.trust.crt contains the full set of all trusted
 or distrusted certificates, including the associated trust flags.

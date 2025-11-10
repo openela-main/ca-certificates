@@ -1,6 +1,7 @@
 %define pkidir %{_sysconfdir}/pki
 %define catrustdir %{_sysconfdir}/pki/ca-trust
 %define classic_tls_bundle ca-bundle.crt
+%define openssl_format_trust_bundle ca-bundle.trust.crt
 %define p11_format_bundle ca-bundle.trust.p11-kit
 %define legacy_default_bundle ca-bundle.legacy.default.crt
 %define legacy_disable_bundle ca-bundle.legacy.disable.crt
@@ -34,10 +35,10 @@ Name: ca-certificates
 # to have increasing version numbers. However, the new scheme will work, 
 # because all future versions will start with 2013 or larger.)
 
-Version: 2024.2.69_v8.0.303
+Version: 2025.2.80_v9.0.305
 # for Rawhide, please always use release >= 2
 # for Fedora release branches, please use release < 2 (1.0, 1.1, ...)
-Release: 102.3%{?dist}
+Release: 102%{?dist}
 License: MIT AND GPL-2.0-or-later
 
 URL: https://fedoraproject.org/wiki/CA-Certificates
@@ -74,6 +75,8 @@ Requires: grep
 Requires: sed
 Requires(post): p11-kit-trust >= 0.24
 Requires: p11-kit-trust >= 0.24
+Requires: libffi
+Requires(post): libffi
 
 BuildRequires: perl-interpreter
 BuildRequires: python3
@@ -235,6 +238,8 @@ touch $RPM_BUILD_ROOT%{catrustdir}/extracted/pem/email-ca-bundle.pem
 chmod 444 $RPM_BUILD_ROOT%{catrustdir}/extracted/pem/email-ca-bundle.pem
 touch $RPM_BUILD_ROOT%{catrustdir}/extracted/pem/objsign-ca-bundle.pem
 chmod 444 $RPM_BUILD_ROOT%{catrustdir}/extracted/pem/objsign-ca-bundle.pem
+touch $RPM_BUILD_ROOT%{catrustdir}/extracted/openssl/%{openssl_format_trust_bundle}
+chmod 444 $RPM_BUILD_ROOT%{catrustdir}/extracted/openssl/%{openssl_format_trust_bundle}
 touch $RPM_BUILD_ROOT%{catrustdir}/extracted/%{java_bundle}
 chmod 444 $RPM_BUILD_ROOT%{catrustdir}/extracted/%{java_bundle}
 touch $RPM_BUILD_ROOT%{catrustdir}/extracted/edk2/cacerts.bin
@@ -301,7 +306,11 @@ ln -s /etc/pki/tls/ct_log_list.cnf \
 ln -s %{catrustdir}/extracted/%{java_bundle} \
     $RPM_BUILD_ROOT%{pkidir}/%{java_bundle}
 ln -s %{catrustdir}/extracted/pem/tls-ca-bundle.pem \
+    $RPM_BUILD_ROOT%{pkidir}/tls/cert.pem
+ln -s %{catrustdir}/extracted/pem/tls-ca-bundle.pem \
     $RPM_BUILD_ROOT%{pkidir}/tls/certs/%{classic_tls_bundle}
+ln -s %{catrustdir}/extracted/openssl/%{openssl_format_trust_bundle} \
+    $RPM_BUILD_ROOT%{pkidir}/tls/certs/%{openssl_format_trust_bundle}
 
 %clean
 /usr/bin/chmod u+w $RPM_BUILD_ROOT%{catrustdir}/extracted/pem/directory-hash
@@ -309,10 +318,6 @@ rm -rf $RPM_BUILD_ROOT
 
 %pre
 if [ $1 -gt 1 ] ; then
-  # Remove the old symlinks
-  rm -f %{pkidir}/tls/cert.pem
-  rm -f %{pkidir}/tls/certs/ca-bundle.trust.crt
-
   # Upgrade or Downgrade.
   # If the classic filename is a regular file, then we are upgrading
   # from an old package and we will move it to an .rpmsave backup file.
@@ -341,6 +346,17 @@ if [ $1 -gt 1 ] ; then
       if ! test -L %{pkidir}/tls/certs/%{classic_tls_bundle}; then
         # it's an old regular file, not a link
         mv -f %{pkidir}/tls/certs/%{classic_tls_bundle} %{pkidir}/tls/certs/%{classic_tls_bundle}.rpmsave
+      fi
+    fi
+  fi
+
+  if ! test -e %{pkidir}/tls/certs/%{openssl_format_trust_bundle}.rpmsave; then
+    # no backup yet
+    if test -e %{pkidir}/tls/certs/%{openssl_format_trust_bundle}; then
+      # a file exists
+      if ! test -L %{pkidir}/tls/certs/%{openssl_format_trust_bundle}; then
+        # it's an old regular file, not a link
+        mv -f %{pkidir}/tls/certs/%{openssl_format_trust_bundle} %{pkidir}/tls/certs/%{openssl_format_trust_bundle}.rpmsave
       fi
     fi
   fi
@@ -384,8 +400,8 @@ fi
 %dir %{catrustdir}/source/blocklist
 %dir %{catrustdir}/extracted
 %dir %{catrustdir}/extracted/pem
-%dir %{catrustdir}/extracted/openssl
 %dir %{catrustdir}/extracted/java
+%dir %{catrustdir}/extracted/openssl
 %dir %{_datadir}/pki
 %dir %{_datadir}/pki/ca-trust-source
 %dir %{_datadir}/pki/ca-trust-source/anchors
@@ -407,7 +423,9 @@ fi
 %{catrustdir}/source/README
 
 # symlinks for old locations
+%{pkidir}/tls/cert.pem
 %{pkidir}/tls/certs/%{classic_tls_bundle}
+%{pkidir}/tls/certs/%{openssl_format_trust_bundle}
 %{pkidir}/%{java_bundle}
 # Hybrid hash directory with bundle file for Debian compatibility
 # See https://bugzilla.redhat.com/show_bug.cgi?id=1053882
@@ -430,10 +448,49 @@ fi
 %ghost %{catrustdir}/extracted/pem/tls-ca-bundle.pem
 %ghost %{catrustdir}/extracted/pem/email-ca-bundle.pem
 %ghost %{catrustdir}/extracted/pem/objsign-ca-bundle.pem
+%ghost %{catrustdir}/extracted/openssl/%{openssl_format_trust_bundle}
 %ghost %{catrustdir}/extracted/%{java_bundle}
 %ghost %{catrustdir}/extracted/edk2/cacerts.bin
 
 %changelog
+*Wed Oct 29 2025 Frantisek Krenzelok <fkrenzel@redhat.com> - 2025.2.80_v9.0.305-102
+- Remove /etc/pki/tls/certs/ca-certificates.crt symlink which was included by mistake
+
+*Fri Oct 10 2025 rhel-developer-toolbox <krenzelok.frantisek@gmail.com> - 2025.2.80_v9.0.305-101
+- Update to CKBI 2.80_v9.0.305 from NSS 3.114
+-    Adding:
+-     # Certificate "TWCA CYBER Root CA"
+-     # Certificate "TWCA Global Root CA G2"
+-     # Certificate "SecureSign Root CA12"
+-     # Certificate "SecureSign Root CA14"
+-     # Certificate "SecureSign Root CA15"
+-     # Certificate "D-TRUST BR Root CA 2 2023"
+-     # Certificate "TrustAsia SMIME ECC Root CA"
+-     # Certificate "TrustAsia SMIME RSA Root CA"
+-     # Certificate "TrustAsia TLS ECC Root CA"
+-     # Certificate "TrustAsia TLS RSA Root CA"
+-     # Certificate "D-TRUST EV Root CA 2 2023"
+-     # Certificate "SwissSign RSA SMIME Root CA 2022 - 1"
+-     # Certificate "SwissSign RSA TLS Root CA 2022 - 1"
+-     # Certificate "Sectigo Public Code Signing Root R46"
+-     # Certificate "Sectigo Public Code Signing Root E46"
+
+* Mon Aug 18 2025 Frantisek Krenzelok <fkrenzel@redhat.com> - 2024.2.69_v8.0.303-102.5
+- Bring back openssl trusted format bundle as well (Resolves: RHEL-109484)
+- Restored the following symlinks:
+	* /etc/pki/tls/cert.pem
+	* /etc/pki/tls/certs/ca-certificates.crt
+	* /etc/pki/tls/certs/ca-bundle.trust.crt
+	* /etc/pki/tls/certs/ca-bundle.crt
+	* /etc/ssl/cert.pem
+	* /etc/ssl/certs/ca-certificates.crt
+	* /etc/ssl/certs/ca-bundle.trust.crt
+	* /etc/ssl/certs/ca-bundle.crt
+- add libffi
+
+* Thu Mar 20 2025 Frantisek Krenzelok <fkrenzel@redhat.com> - 2024.2.69_v8.0.303-102.4
+- Remove unused folder /etc/pki/ca-trust/extracted/openssl
+
 * Tue Oct 29 2024 Troy Dawson <tdawson@redhat.com> - 2024.2.69_v8.0.303-102.3
 - Bump release for October 2024 mass rebuild:
   Resolves: RHEL-64018
