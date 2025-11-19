@@ -35,10 +35,10 @@ Name: ca-certificates
 # to have increasing version numbers. However, the new scheme will work, 
 # because all future versions will start with 2013 or larger.)
 
-Version: 2024.2.69_v8.0.303
+Version: 2025.2.80_v9.0.305
 # for y-stream, please always use 91 <= release  < 100 (91,92,93)
 # for z-stream release branches, please use 90 <= release  < 91 (90.0, 90.1, ...)
-Release: 91.4%{?dist}
+Release: 91%{?dist}
 License: MIT AND GPL-2.0-or-later
 
 URL: https://fedoraproject.org/wiki/CA-Certificates
@@ -73,6 +73,9 @@ Requires: grep
 Requires: sed
 Requires(post): p11-kit-trust >= 0.24
 Requires: p11-kit-trust >= 0.24
+Requires: libffi
+Requires(post): libffi
+Requires(post): findutils
 
 BuildRequires: perl-interpreter
 BuildRequires: python3
@@ -440,6 +443,29 @@ fi
 %ghost %{catrustdir}/extracted/pem/directory-hash/ca-certificates.crt
 
 %changelog
+*Fri Oct 10 2025 rhel-developer-toolbox <krenzelok.frantisek@gmail.com> - 2025.2.80_v9.0.305-91
+- Update to CKBI 2.80_v9.0.305 from NSS 3.114
+-    Adding:
+-     # Certificate "TWCA CYBER Root CA"
+-     # Certificate "TWCA Global Root CA G2"
+-     # Certificate "SecureSign Root CA12"
+-     # Certificate "SecureSign Root CA14"
+-     # Certificate "SecureSign Root CA15"
+-     # Certificate "D-TRUST BR Root CA 2 2023"
+-     # Certificate "TrustAsia SMIME ECC Root CA"
+-     # Certificate "TrustAsia SMIME RSA Root CA"
+-     # Certificate "TrustAsia TLS ECC Root CA"
+-     # Certificate "TrustAsia TLS RSA Root CA"
+-     # Certificate "D-TRUST EV Root CA 2 2023"
+-     # Certificate "SwissSign RSA SMIME Root CA 2022 - 1"
+-     # Certificate "SwissSign RSA TLS Root CA 2022 - 1"
+-     # Certificate "Sectigo Public Code Signing Root R46"
+-     # Certificate "Sectigo Public Code Signing Root E46"
+
+*Wed Oct 8 2025 Frantisek Krenzelok <fkrenzel@redhat.com> - 2024.2.69_v8.0.303-91.5
+- Add libffi to required packages
+- Add finutils explicitly
+
 *Fri Aug 16 2024 Frantisek Krenzelok <fkrenzel@redhat.com> - 2024.2.69_v8.0.303-91.4
 - update-ca-trust: return warnings on a unsupported argument instead of error
 
