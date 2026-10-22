@@ -35,10 +35,10 @@ Name: ca-certificates
 # to have increasing version numbers. However, the new scheme will work, 
 # because all future versions will start with 2013 or larger.)
 
-Version: 2025.2.80_v9.0.305
+Version: 2026.2.92_v9.0.319
 # for Rawhide, please always use release >= 2
 # for Fedora release branches, please use release < 2 (1.0, 1.1, ...)
-Release: 102%{?dist}
+Release: 100.3%{?dist}
 License: MIT AND GPL-2.0-or-later
 
 URL: https://fedoraproject.org/wiki/CA-Certificates
@@ -63,6 +63,10 @@ Source17: README.edk2
 Source18: README.src
 Source19: README.etcssl
 
+Patch0: remove-aaa-certificate-services.patch
+Patch1: remove-emsign-ecc-root-ca-g3.patch
+Patch2: remove-emsign-root-cs-ca-g3.patch
+
 BuildArch: noarch
 
 Requires(post): bash
@@ -79,6 +83,7 @@ Requires: libffi
 Requires(post): libffi
 
 BuildRequires: perl-interpreter
+BuildRequires: patch
 BuildRequires: python3
 BuildRequires: openssl
 BuildRequires: asciidoc
@@ -95,11 +100,14 @@ mkdir %{name}/certs
 mkdir %{name}/certs/legacy-default
 mkdir %{name}/certs/legacy-disable
 mkdir %{name}/java
+cp %{SOURCE0} %{name}/certs/certdata.txt
+%patch -P 0 -p0 -d %{name}/certs
+%patch -P 1 -p0 -d %{name}/certs
+%patch -P 2 -p0 -d %{name}/certs
 
 %build
 pushd %{name}/certs
  pwd
- cp %{SOURCE0} .
  python3 %{SOURCE4} >c2p.log 2>c2p.err
 popd
 pushd %{name}
@@ -453,6 +461,66 @@ fi
 %ghost %{catrustdir}/extracted/edk2/cacerts.bin
 
 %changelog
+*Thu Oct 22 2026 Krenželok František <fkrenzel@redhat.com> - 2026.2.92_v9.0.319-100.3
+- Fix malformed patch header in remove-emsign-root-cs-ca-g3.patch
+
+*Thu Oct 22 2026 Krenželok František <fkrenzel@redhat.com> - 2026.2.92_v9.0.319-100.2
+- Removing: emSign Root CS CA - G3 from Microsoft Code Signing certificates
+
+*Wed Oct 21 2026 Krenželok František <fkrenzel@redhat.com> - 2026.2.92_v9.0.319-100.1
+- Removing: AAA Certificate Services root CA
+- Removing: emSign ECC Root CA - G3 from Microsoft Code Signing certificates
+
+*Wed Oct 21 2026 Krenželok František <fkrenzel@redhat.com> - 2026.2.92_v9.0.319-100.0
+- Update to CKBI 2.92_v9.0.319 from NSS 3.131.1
+  Removing:
+  - emSign Root CA - C1
+  
+  Adding:
+  - Actalis Code Signing ECC Root CA 2025
+  - Actalis Code Signing RSA Root CA 2025
+  - emSign Root CS CA - G2
+  - emSign Root CS CA - G3
+  - IdenTrust Commercial Root Code Signing RSA CA 2
+  - e-Szigno CodeSigning Root CA 2024
+
+*Tue Aug 11 2026 Krenželok František <fkrenzel@redhat.com> - 2026.2.90_v9.0.316-100.0
+- Update to CKBI 2.90_v9.0.316 from NSS 3.126
+  Removing:
+  - ePKI Root Certification Authority
+  
+  Adding:
+  - SECOM TLS RSA Root CA 2024
+  - SECOM TLS ECC Root CA 2024
+  - SECOM SMIME RSA Root CA 2024
+  - Telia EC Email Root CA v3
+  - Telia EC TLS Root CA v3
+  - Telia RSA Email Root CA v3
+  - Telia RSA TLS Root CA v3
+  - Chunghwa Telecom Co., Ltd.
+
+*Fri Aug 07 2026 Krenželok František <fkrenzel@redhat.com> - 2026.2.88_v9.0.316-100.0
+- Update to CKBI 2.88_v9.0.316 from NSS 3.125
+-    Removing:
+-     # Certificate "XRamp Global CA Root"
+-     # Certificate "certSIGN ROOT CA"
+-     # Certificate "Explicitly Distrust DigiNotar Root CA"
+-     # Certificate "CommScope Public Trust ECC Root-01"
+-     # Certificate "CommScope Public Trust ECC Root-02"
+-     # Certificate "CommScope Public Trust RSA Root-01"
+-     # Certificate "CommScope Public Trust RSA Root-02"
+-     # Certificate "FIRMAPROFESIONAL CA ROOT-A WEB"
+-     # Certificate "SecureSign Root CA12"
+-    Adding:
+-     # Certificate "OISTE Client Root ECC G1"
+-     # Certificate "OISTE Client Root RSA G1"
+-     # Certificate "OISTE Server Root ECC G1"
+-     # Certificate "OISTE Server Root RSA G1"
+-     # Certificate "e-Szigno TLS Root CA 2023"
+-     # Certificate "SecureSign Root CA16"
+-     # Certificate "certSIGN"
+-     # Certificate "XRamp Global Certification Authority"
+
 *Wed Oct 29 2025 Frantisek Krenzelok <fkrenzel@redhat.com> - 2025.2.80_v9.0.305-102
 - Remove /etc/pki/tls/certs/ca-certificates.crt symlink which was included by mistake
 
